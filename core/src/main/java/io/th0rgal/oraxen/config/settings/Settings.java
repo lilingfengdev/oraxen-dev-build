@@ -1,4 +1,4 @@
-package io.th0rgal.oraxen.config;
+package io.th0rgal.oraxen.config.settings;
 
 import io.th0rgal.oraxen.OraxenPlugin;
 import io.th0rgal.oraxen.font.FontEvents;
@@ -10,6 +10,7 @@ import io.th0rgal.oraxen.utils.OraxenYaml;
 import io.th0rgal.oraxen.utils.VersionUtil;
 import io.th0rgal.oraxen.utils.customarmor.CustomArmorType;
 import io.th0rgal.oraxen.utils.customarmor.ShaderArmorTextures;
+import io.th0rgal.oraxen.utils.customarmor.CustomArmorMaterial;
 import io.th0rgal.oraxen.utils.logs.Logs;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
@@ -62,9 +63,9 @@ public enum Settings {
     ERROR_ITEM("ConfigsTools.error_item", Map.of("material", Material.PODZOL.name(), "excludeFromInventory", false, "injectID", false)),
 
     // Custom Armor
-    CUSTOM_ARMOR_TYPE("CustomArmor.type", VersionUtil.atOrAbove("1.20") ? CustomArmorType.TRIMS.name() : CustomArmorType.SHADER.name()),
+    CUSTOM_ARMOR_DEFAULT_TYPE("CustomArmor.default_type", VersionUtil.atOrAbove("1.20") ? CustomArmorType.TRIMS.name() : CustomArmorType.SHADER.name()),
     DISABLE_LEATHER_REPAIR_CUSTOM("CustomArmor.disable_leather_repair", true),
-    CUSTOM_ARMOR_TRIMS_MATERIAL("CustomArmor.trims_settings.material_replacement", "CHAINMAIL"),
+    CUSTOM_ARMOR_TRIMS_DEFAULT_MATERIAL("CustomArmor.trims_settings.default_material", CustomArmorMaterial.CHAINMAIL.name()),
     CUSTOM_ARMOR_TRIMS_ASSIGN("CustomArmor.trims_settings.auto_assign_settings", true),
     CUSTOM_ARMOR_SHADER_TYPE("CustomArmor.shader_settings.type", ShaderArmorTextures.ShaderType.FANCY.name()),
     CUSTOM_ARMOR_SHADER_RESOLUTION("CustomArmor.shader_settings.armor_resolution", 16),

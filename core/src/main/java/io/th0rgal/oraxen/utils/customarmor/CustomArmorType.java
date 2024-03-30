@@ -1,6 +1,6 @@
 package io.th0rgal.oraxen.utils.customarmor;
 
-import io.th0rgal.oraxen.config.Settings;
+import io.th0rgal.oraxen.config.settings.Settings;
 import io.th0rgal.oraxen.utils.VersionUtil;
 import io.th0rgal.oraxen.utils.logs.Logs;
 
@@ -8,7 +8,7 @@ public enum CustomArmorType {
     NONE, SHADER, TRIMS;
 
     public static CustomArmorType getSetting() {
-        return fromString(Settings.CUSTOM_ARMOR_TYPE.toString());
+        return fromString(Settings.CUSTOM_ARMOR_DEFAULT_TYPE.toString());
     }
 
     public static CustomArmorType fromString(String type) {

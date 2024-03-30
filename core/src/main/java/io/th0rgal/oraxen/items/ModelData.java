@@ -1,6 +1,6 @@
 package io.th0rgal.oraxen.items;
 
-import io.th0rgal.oraxen.config.Settings;
+import io.th0rgal.oraxen.config.settings.Settings;
 import io.th0rgal.oraxen.utils.logs.Logs;
 import net.kyori.adventure.key.Key;
 import org.bukkit.Material;

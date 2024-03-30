@@ -2,7 +2,7 @@ package io.th0rgal.oraxen.pack;
 
 import com.ticxo.modelengine.api.ModelEngineAPI;
 import io.th0rgal.oraxen.OraxenPlugin;
-import io.th0rgal.oraxen.config.Settings;
+import io.th0rgal.oraxen.config.settings.Settings;
 import io.th0rgal.oraxen.font.FontManager;
 import io.th0rgal.oraxen.font.Glyph;
 import io.th0rgal.oraxen.utils.AdventureUtils;
@@ -92,6 +92,7 @@ public class PackGenerator {
         if (!ModelEngineUtils.isModelEngineEnabled()) return;
         File megPack = ModelEngineAPI.getAPI().getDataFolder().toPath().resolve("resource pack.zip").toFile();
         if (!megPack.exists()) return;
+        if ()
         mergePack(MinecraftResourcePackReader.minecraft().readFromZipFile(megPack));
         Logs.logSuccess("Imported ModelEngine pack successfully!");
     }
@@ -132,7 +133,8 @@ public class PackGenerator {
     }
 
     private void addImportPacks() {
-        for (File file : externalPacks.toFile().listFiles()) {
+        File[] files = Objects.requireNonNullElse(externalPacks.toFile().listFiles(), new ArrayList<File>().toArray(new File[0]));
+        for (File file : files) {
             if (file == null) continue;
             if (file.isDirectory()) {
                 Logs.logInfo("Importing pack " + file.getName() + "...");

@@ -3,7 +3,7 @@ package io.th0rgal.oraxen.utils.customarmor;
 import io.th0rgal.oraxen.OraxenPlugin;
 import io.th0rgal.oraxen.api.OraxenItems;
 import io.th0rgal.oraxen.config.Message;
-import io.th0rgal.oraxen.config.Settings;
+import io.th0rgal.oraxen.config.settings.Settings;
 import io.th0rgal.oraxen.items.ItemBuilder;
 import io.th0rgal.oraxen.utils.AdventureUtils;
 import io.th0rgal.oraxen.utils.VirtualFile;
@@ -26,7 +26,7 @@ import java.nio.file.Files;
 import java.util.List;
 import java.util.*;
 
-public class ShaderArmorTextures extends CustomArmor {
+public class ShaderArmorTextures implements CustomArmor {
 
     static final int DEFAULT_RESOLUTION = 16;
     static final int HEIGHT_RATIO = 2;

@@ -1,4 +1,4 @@
-package io.th0rgal.oraxen.config;
+package io.th0rgal.oraxen.config.settings;
 
 import java.util.Arrays;
 import java.util.List;

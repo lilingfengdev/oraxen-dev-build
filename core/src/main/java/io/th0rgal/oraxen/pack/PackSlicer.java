@@ -1,6 +1,6 @@
 package io.th0rgal.oraxen.pack;
 
-import io.th0rgal.oraxen.config.Settings;
+import io.th0rgal.oraxen.config.settings.Settings;
 import io.th0rgal.oraxen.pack.slicer.Box;
 import io.th0rgal.oraxen.pack.slicer.InputTexture;
 import io.th0rgal.oraxen.pack.slicer.OutputTexture;

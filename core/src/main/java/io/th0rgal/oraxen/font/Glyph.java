@@ -3,7 +3,7 @@ package io.th0rgal.oraxen.font;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import io.th0rgal.oraxen.config.Settings;
+import io.th0rgal.oraxen.config.settings.Settings;
 import io.th0rgal.oraxen.utils.AdventureUtils;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;

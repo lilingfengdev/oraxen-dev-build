@@ -1,7 +1,9 @@
 package io.th0rgal.oraxen.utils.customarmor;
 
 import io.th0rgal.oraxen.api.OraxenItems;
-import io.th0rgal.oraxen.config.Settings;
+import io.th0rgal.oraxen.config.settings.Settings;
+import io.th0rgal.oraxen.items.ItemBuilder;
+import io.th0rgal.oraxen.items.OraxenMeta;
 import io.th0rgal.oraxen.utils.VersionUtil;
 import io.th0rgal.oraxen.utils.armorequipevent.ArmorEquipEvent;
 import io.th0rgal.oraxen.utils.logs.Logs;
@@ -101,14 +103,19 @@ public class CustomArmorListener implements Listener {
     }
 
     private void setVanillaArmorTrim(ItemStack itemStack) {
-        String armorPrefix = Settings.CUSTOM_ARMOR_TRIMS_MATERIAL.toString();
         if (!VersionUtil.atOrAbove("1.20")) return;
         if (CustomArmorType.getSetting() != CustomArmorType.TRIMS) return;
         if (itemStack == null || !(itemStack.getItemMeta() instanceof ArmorMeta armorMeta)) return;
-        if (!itemStack.getType().name().startsWith(armorPrefix)) return;
         if (armorMeta.hasTrim() && armorMeta.getTrim().getPattern().key().namespace().equals("oraxen")) return;
 
-        Key vanillaPatternKey = Key.key("minecraft", armorPrefix.toLowerCase());
+        ItemBuilder itemBuilder = OraxenItems.getBuilderByItem(itemStack);
+        if (itemBuilder == null) return;
+        OraxenMeta oraxenMeta = itemBuilder.getOraxenMeta();
+        if (oraxenMeta == null) return;
+        oraxenMeta
+
+        CustomArmorMaterial customArmorMaterial = CustomArmorMaterial.fromMaterial(itemStack.getType());
+        Key vanillaPatternKey = Key.key("minecraft", customArmorMaterial.name().toLowerCase());
         @Nullable TrimPattern vanillaPattern = Registry.TRIM_PATTERN.get(NamespacedKey.fromString(vanillaPatternKey.asString()));
         if (vanillaPattern != null && (!armorMeta.hasItemFlag(ItemFlag.HIDE_ARMOR_TRIM) || !armorMeta.hasTrim() || !armorMeta.getTrim().getPattern().key().equals(vanillaPatternKey))) {
             armorMeta.setTrim(new ArmorTrim(TrimMaterial.REDSTONE, vanillaPattern));

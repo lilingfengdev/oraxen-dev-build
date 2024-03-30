@@ -1,6 +1,5 @@
 package io.th0rgal.oraxen.utils.armorequipevent;
 
-import io.th0rgal.oraxen.config.Settings;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Tag;

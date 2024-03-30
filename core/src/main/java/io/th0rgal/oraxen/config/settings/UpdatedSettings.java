@@ -1,4 +1,4 @@
-package io.th0rgal.oraxen.config;
+package io.th0rgal.oraxen.config.settings;
 
 import java.util.Arrays;
 import java.util.List;
@@ -28,6 +28,8 @@ public enum UpdatedSettings {
     GENERATE_ARMOR_SHADER_FILES("Pack.generation.generate_armor_shader_files", "CustomArmor.shader_settings.generate_armor_shader_files"),
     GENERATE_CUSTOM_ARMOR_TEXTURES("Pack.generation.generate_custom_armor_textures", "CustomArmor.shader_settings.generate_custom_armor_textures"),
     AUTOMATICALLY_GENERATE_SHADER_COMPATIBLE_ARMOR("Pack.generation.automatically_generate_shader_compatible_armor", "CustomArmor.shader_settings.generate_shader_compatible_armor"),
+    CUSTOM_ARMOR_TRIMS_MATERIAL("CustomArmor.trims_settings.material_replacement", "CustomArmor.trims_settings.default_material"),
+    CUSTOM_ARMOR_DEFAULT_TYPE("CustomArmor.type", "CustomArmor.default_type")
     ;
 
     private final String path;

@@ -1,7 +1,9 @@
 package io.th0rgal.oraxen.items;
 
-import io.th0rgal.oraxen.config.Settings;
+import io.th0rgal.oraxen.config.settings.Settings;
 import io.th0rgal.oraxen.utils.Utils;
+import io.th0rgal.oraxen.utils.customarmor.CustomArmorMeta;
+import io.th0rgal.oraxen.utils.customarmor.CustomArmorType;
 import net.kyori.adventure.key.Key;
 import org.bukkit.configuration.ConfigurationSection;
 import team.unnamed.creative.model.ModelTexture;
@@ -32,6 +34,7 @@ public class OraxenMeta {
     private boolean noUpdate = false;
     private boolean disableEnchanting = false;
     private boolean generateModel = false;
+    private CustomArmorMeta customArmorMeta;
 
     public void setExcludedFromInventory(boolean excluded) {
         this.excludedFromInventory = excluded;
@@ -195,6 +198,18 @@ public class OraxenMeta {
 
     public void disableEnchanting(boolean disableEnchanting) { this.disableEnchanting = disableEnchanting; }
 
+    public boolean isCustomArmor() {
+        return customArmorMeta != null && !customArmorMeta.type().equals(CustomArmorType.NONE);
+    }
+
+    public CustomArmorMeta customArmorMeta() {
+        return customArmorMeta;
+    }
+
+    public void customArmorMeta(ConfigurationSection section) {
+        this.customArmorMeta = new CustomArmorMeta(section.getConfigurationSection("custom_armor"));
+
+    }
 
 }
 
