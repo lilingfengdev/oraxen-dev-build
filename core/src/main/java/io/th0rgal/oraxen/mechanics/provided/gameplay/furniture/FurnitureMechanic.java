@@ -11,7 +11,6 @@ import io.th0rgal.oraxen.compatibilities.provided.blocklocker.BlockLockerMechani
 import io.th0rgal.oraxen.mechanics.Mechanic;
 import io.th0rgal.oraxen.mechanics.MechanicFactory;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.evolution.EvolvingFurniture;
-import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.hitbox.FurnitureHitbox;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.jukebox.JukeboxBlock;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.seats.FurnitureSeat;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.light.LightMechanic;
@@ -289,17 +288,17 @@ public class FurnitureMechanic extends Mechanic {
         }
     }
 
-    public Entity place(Location location) {
+    public FurnitureBaseEntity place(Location location) {
         setPlacedItem();
         return place(location, placedItem, 0f, BlockFace.NORTH, true);
     }
 
-    public Entity place(Location location, Float yaw, BlockFace facing) {
+    public FurnitureBaseEntity place(Location location, Float yaw, BlockFace facing) {
         setPlacedItem();
         return place(location, placedItem, yaw, facing, true);
     }
 
-    public Entity place(Location location, ItemStack originalItem, Float yaw, BlockFace facing, boolean checkSpace) {
+    public FurnitureBaseEntity place(Location location, ItemStack originalItem, Float yaw, BlockFace facing, boolean checkSpace) {
         if (!location.isWorldLoaded()) return null;
         if (checkSpace && !this.hasEnoughSpace(location, yaw)) return null;
         assert location.getWorld() != null;
@@ -314,17 +313,16 @@ public class FurnitureMechanic extends Mechanic {
             item = ItemUtils.editItemMeta(originalItem.clone(), meta -> meta.setDisplayName(""));
         } else item = placedItem;
         item.setAmount(1);
-
-        Entity baseEntity = EntityUtils.spawnEntity(correctedSpawnLocation(location, facing), entityClass, (e) -> setEntityData(e, yaw, item, facing));
-        if (baseEntity == null) return null;
+        Entity entity = EntityUtils.spawnEntity(correctedSpawnLocation(location, facing), entityClass, (e) -> setEntityData(e, yaw, item, facing));
+        Logs.logSuccess(String.valueOf(entity instanceof FurnitureBaseEntity));
+        if (entity == null) return null;
         if (this.isModelEngine() && PluginUtils.isEnabled("ModelEngine")) {
-            spawnModelEngineFurniture(baseEntity);
+            spawnModelEngineFurniture(entity);
         }
-        FurnitureSeat.spawnSeats(baseEntity, this);
+        FurnitureSeat.spawnSeats(entity, this);
 
         //hitbox.handleHitboxes(baseEntity, this);
-
-        return baseEntity;
+        return new FurnitureBaseEntity(entity);
     }
 
     private Location correctedSpawnLocation(Location baseLocation, BlockFace facing) {

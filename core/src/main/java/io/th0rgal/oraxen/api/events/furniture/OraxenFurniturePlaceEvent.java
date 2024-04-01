@@ -1,5 +1,6 @@
 package io.th0rgal.oraxen.api.events.furniture;
 
+import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureBaseEntity;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureMechanic;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
@@ -21,6 +22,16 @@ public class OraxenFurniturePlaceEvent extends Event implements Cancellable {
     private final EquipmentSlot hand;
     private boolean isCancelled;
     private static final HandlerList HANDLERS = new HandlerList();
+
+    public OraxenFurniturePlaceEvent(@NotNull final FurnitureMechanic mechanic, @NotNull final Block block, @NotNull final FurnitureBaseEntity baseEntity, @NotNull final Player player, @NotNull final ItemStack itemInHand, @NotNull final EquipmentSlot hand) {
+        this.mechanic = mechanic;
+        this.player = player;
+        this.block = block;
+        this.isCancelled = false;
+        this.baseEntity = baseEntity.getBukkitEntity();
+        this.itemInHand = itemInHand;
+        this.hand = hand;
+    }
 
     public OraxenFurniturePlaceEvent(@NotNull final FurnitureMechanic mechanic, @NotNull final Block block, @NotNull final Entity baseEntity, @NotNull final Player player, @NotNull final ItemStack itemInHand, @NotNull final EquipmentSlot hand) {
         this.mechanic = mechanic;

@@ -52,6 +52,10 @@ public class InteractionHitbox {
         return height;
     }
 
+    public Vector vector() {
+        return new Vector(width, height, width).add(offset);
+    }
+
     public Vector offset() {
         return offset;
     }

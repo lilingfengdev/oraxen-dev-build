@@ -2,6 +2,7 @@ package io.th0rgal.oraxen.api;
 
 import com.comphenix.protocol.wrappers.BlockPosition;
 import io.th0rgal.oraxen.items.ItemUpdater;
+import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureBaseEntity;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureFactory;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureHelpers;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureMechanic;
@@ -73,7 +74,7 @@ public class OraxenFurniture {
      * @return The Furniture entity that was placed, or null if the Furniture could not be placed
      */
     @Nullable
-    public static Entity place(String itemID, Location location, Rotation rotation, BlockFace blockFace) {
+    public static FurnitureBaseEntity place(String itemID, Location location, Rotation rotation, BlockFace blockFace) {
         return place(itemID, location, FurnitureHelpers.rotationToYaw(rotation), blockFace);
     }
 
@@ -86,26 +87,10 @@ public class OraxenFurniture {
      * @return The Furniture entity that was placed, or null if the Furniture could not be placed
      */
     @Nullable
-    public static Entity place(String itemID, Location location, float yaw, BlockFace blockFace) {
+    public static FurnitureBaseEntity place(String itemID, Location location, float yaw, BlockFace blockFace) {
         FurnitureMechanic mechanic = getFurnitureMechanic(itemID);
         if (mechanic == null) return null;
         return mechanic.place(location, yaw, blockFace);
-    }
-
-    /**
-     * Places Furniture at a given location
-     * @param location The location to place the Furniture
-     * @param itemID The itemID of the Furniture to place
-     * @param rotation The rotation of the Furniture
-     * @param blockFace The blockFace of the Furniture
-     * @return true if the Furniture was placed, false otherwise
-     * @deprecated Use {@link #place(String, Location, Rotation, BlockFace)} instead
-     */
-    @Deprecated(since = "1.162.0", forRemoval = true)
-    public static boolean place(Location location, String itemID, Rotation rotation, BlockFace blockFace) {
-        FurnitureMechanic mechanic = getFurnitureMechanic(itemID);
-        if (mechanic == null) return false;
-        return mechanic.place(location, FurnitureHelpers.rotationToYaw(rotation), blockFace) != null;
     }
 
     /**
@@ -154,6 +139,17 @@ public class OraxenFurniture {
 
         mechanic.removeBaseEntity(baseEntity);
         return true;
+    }
+
+    public static boolean remove(@NotNull FurnitureBaseEntity baseEntity) {
+        return remove(baseEntity, null);
+    }
+    public static boolean remove(@NotNull FurnitureBaseEntity baseEntity, @Nullable Player player) {
+        return remove(baseEntity, player, null);
+    }
+
+    public static boolean remove(@NotNull FurnitureBaseEntity baseEntity, @Nullable Player player, @Nullable Drop drop) {
+        return remove(baseEntity.getBukkitEntity(), player, drop);
     }
 
     /**
