@@ -9,7 +9,6 @@ import team.unnamed.creative.base.Writable;
 import team.unnamed.creative.font.Font;
 import team.unnamed.creative.lang.Language;
 import team.unnamed.creative.metadata.pack.PackMeta;
-import team.unnamed.creative.model.Model;
 import team.unnamed.creative.serialize.minecraft.MinecraftResourcePackReader;
 import team.unnamed.creative.sound.SoundEvent;
 import team.unnamed.creative.sound.SoundRegistry;
@@ -17,6 +16,7 @@ import team.unnamed.creative.sound.SoundRegistry;
 import java.io.File;
 import java.util.Collection;
 import java.util.LinkedHashSet;
+import java.util.Optional;
 
 public class OraxenPack {
 
@@ -51,8 +51,7 @@ public class OraxenPack {
         if (packIcon != null) resourcePack.icon(packIcon);
 
         importedPack.models().forEach(model -> {
-            Model baseModel = resourcePack.model(model.key());
-            if (baseModel != null) model.overrides().addAll(baseModel.overrides());
+            Optional.ofNullable(resourcePack.model(model.key())).ifPresent(base -> model.overrides().addAll(base.overrides()));
             model.addTo(resourcePack);
         });
 
