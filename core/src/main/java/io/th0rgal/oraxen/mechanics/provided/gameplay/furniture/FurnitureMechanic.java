@@ -22,6 +22,7 @@ import io.th0rgal.oraxen.utils.actions.ClickAction;
 import io.th0rgal.oraxen.utils.blocksounds.BlockSounds;
 import io.th0rgal.oraxen.utils.drops.Drop;
 import io.th0rgal.oraxen.utils.logs.Logs;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
@@ -159,7 +160,7 @@ public class FurnitureMechanic extends Mechanic {
         if (evolvingFurniture != null) ((FurnitureFactory) getFactory()).registerEvolution();
 
         ConfigurationSection dropSection = section.getConfigurationSection("drop");
-        drop = dropSection != null ? Drop.createDrop(FurnitureFactory.getInstance().toolTypes, dropSection, getItemID()) : new Drop(new ArrayList<>(), false, false, getItemID());
+        drop = dropSection != null ? Drop.createDrop(FurnitureFactory.get().toolTypes, dropSection, getItemID()) : new Drop(new ArrayList<>(), false, false, getItemID());
 
         ConfigurationSection limitedPlacingSection = section.getConfigurationSection("limited_placing");
         limitedPlacing = limitedPlacingSection != null ? new LimitedPlacing(limitedPlacingSection) : null;
@@ -171,7 +172,7 @@ public class FurnitureMechanic extends Mechanic {
         blockSounds = blockSoundsSection != null ? new BlockSounds(blockSoundsSection) : null;
 
         ConfigurationSection jukeboxSection = section.getConfigurationSection("jukebox");
-        jukebox = jukeboxSection != null ? new JukeboxBlock(mechanicFactory, jukeboxSection) : null;
+        jukebox = jukeboxSection != null ? new JukeboxBlock(jukeboxSection) : null;
 
         clickActions = ClickAction.parseList(section);
 
@@ -311,7 +312,7 @@ public class FurnitureMechanic extends Mechanic {
 
         ItemStack item;
         if (evolvingFurniture == null) {
-            item = ItemUtils.editItemMeta(originalItem.clone(), meta -> meta.setDisplayName(""));
+            item = ItemUtils.editItemMeta(originalItem.clone(), meta -> ItemUtils.displayName(meta, Component.empty()));
         } else item = placedItem;
         item.setAmount(1);
 

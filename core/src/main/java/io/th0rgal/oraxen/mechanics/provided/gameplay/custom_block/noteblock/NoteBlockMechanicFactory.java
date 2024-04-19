@@ -23,17 +23,13 @@ import team.unnamed.creative.blockstate.BlockState;
 import team.unnamed.creative.blockstate.MultiVariant;
 import team.unnamed.creative.blockstate.Variant;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 public class NoteBlockMechanicFactory extends MechanicFactory {
 
     private static final Integer MAX_PER_INSTRUMENT = 50;
     public static final Integer MAX_BLOCK_VARIATION = Instrument.values().length * MAX_PER_INSTRUMENT - 1;
     public static final Map<Integer, NoteBlockMechanic> BLOCK_PER_VARIATION = new HashMap<>();
-    private final Map<String, MultiVariant> variants = new HashMap<>();
     private static NoteBlockMechanicFactory instance;
     public final List<String> toolTypes;
     public final boolean customSounds;
@@ -43,16 +39,11 @@ public class NoteBlockMechanicFactory extends MechanicFactory {
     public NoteBlockMechanicFactory(ConfigurationSection section) {
         super(section);
         instance = this;
-        variants.put("instrument=harp,powered=false,note=0", MultiVariant.of(Variant.builder().model(Key.key("block/note_block")).build()));
+
         toolTypes = section.getStringList("tool_types");
-        customSounds = OraxenPlugin.get().configsManager().getMechanics().getConfigurationSection("custom_block_sounds").getBoolean("noteblock_and_block", true);
+        customSounds = OraxenPlugin.get().configsManager().getMechanics().getBoolean("custom_block_sounds.noteblock", true);
         removeMineableTag = section.getBoolean("remove_mineable_tag", false);
 
-        BlockState noteState = OraxenPlugin.get().packGenerator().resourcePack().blockState(Key.key("minecraft:note_block"));
-        if (noteState != null) noteState.variants().putAll(variants);
-        else noteState = BlockState.of(Key.key("minecraft:note_block"), variants);
-
-        OraxenPlugin.get().packGenerator().resourcePack().blockState(noteState);
         MechanicsManager.registerListeners(OraxenPlugin.get(), getMechanicID(),
                 new NoteBlockMechanicListener(),
                 new LogStripListener());
@@ -60,9 +51,9 @@ public class NoteBlockMechanicFactory extends MechanicFactory {
 
         // Physics-related stuff
         if (VersionUtil.isPaperServer())
-            MechanicsManager.registerListeners(OraxenPlugin.get(), getMechanicID(), new NoteBlockMechanicListener.NoteBlockMechanicPaperListener());
+            MechanicsManager.registerListeners(OraxenPlugin.get(), getMechanicID(), new NoteBlockMechanicPaperListener());
         if (!VersionUtil.isPaperServer() || !NMSHandlers.isNoteblockUpdatesDisabled())
-            MechanicsManager.registerListeners(OraxenPlugin.get(), getMechanicID(), new NoteBlockMechanicListener.NoteBlockMechanicPhysicsListener());
+            MechanicsManager.registerListeners(OraxenPlugin.get(), getMechanicID(), new NoteBlockMechanicPhysicsListener());
         if (VersionUtil.isPaperServer() && VersionUtil.atOrAbove("1.20.1") && !NMSHandlers.isNoteblockUpdatesDisabled()) {
             Logs.logError("Papers block-updates.disable-noteblock-updates is not enabled.");
             Logs.logWarning("It is recommended to enable this setting for improved performance and prevent bugs with noteblocks");
@@ -71,21 +62,25 @@ public class NoteBlockMechanicFactory extends MechanicFactory {
         }
     }
 
-    @Nullable
-    public static NoteBlockMechanic getBlockMechanic(@NotNull NoteBlock blockData) {
-        return BLOCK_PER_VARIATION.values().stream().filter(m -> m.blockData().equals(blockData)).findFirst().orElse(null);
-    }
-
     public static boolean isEnabled() {
         return instance != null;
     }
 
-    public static NoteBlockMechanicFactory getInstance() {
+    public static NoteBlockMechanicFactory get() {
         return instance;
     }
 
     public boolean removeMineableTag() {
         return removeMineableTag;
+    }
+
+    private final Map<String, MultiVariant> variants = new LinkedHashMap<>();
+    public BlockState generateBlockStateFile() {
+        Key noteKey = Key.key("minecraft:note_block");
+        variants.put("instrument=harp,powered=false,note=0", MultiVariant.of(Variant.builder().model(Key.key("block/note_block")).build()));
+        BlockState noteState = OraxenPlugin.get().packGenerator().resourcePack().blockState(noteKey);
+        if (noteState != null) variants.putAll(noteState.variants());
+        return BlockState.of(noteKey, variants);
     }
 
 
@@ -98,6 +93,11 @@ public class NoteBlockMechanicFactory extends MechanicFactory {
     public static void setBlockModel(Block block, String itemId) {
         NoteBlockMechanic mechanic = OraxenBlocks.getNoteBlockMechanic(itemId);
         if (mechanic != null) block.setBlockData(mechanic.blockData());
+    }
+
+    @Nullable
+    public static NoteBlockMechanic getMechanic(@NotNull NoteBlock blockData) {
+        return BLOCK_PER_VARIATION.values().stream().filter(m -> m.blockData().equals(blockData)).findFirst().orElse(null);
     }
 
     @Override
@@ -163,7 +163,7 @@ public class NoteBlockMechanicFactory extends MechanicFactory {
 
     private boolean allowedSameVariation(NoteBlockMechanic mechanic, NoteBlockMechanic oldMechanic) {
         if (oldMechanic == null) return true;
-        if (mechanic == oldMechanic) return true;
+        if (mechanic.getItemID().equals(oldMechanic.getItemID())) return true;
         if (!mechanic.isDirectional()) return false;
         if (!oldMechanic.isDirectional()) return false;
         if (mechanic.equals(oldMechanic.directional().getParentMechanic())) return true;
