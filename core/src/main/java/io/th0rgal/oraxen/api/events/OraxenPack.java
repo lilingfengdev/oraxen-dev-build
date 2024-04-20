@@ -6,8 +6,6 @@ import org.jetbrains.annotations.NotNull;
 import team.unnamed.creative.ResourcePack;
 import team.unnamed.creative.atlas.Atlas;
 import team.unnamed.creative.base.Writable;
-import team.unnamed.creative.font.Font;
-import team.unnamed.creative.lang.Language;
 import team.unnamed.creative.metadata.pack.PackMeta;
 import team.unnamed.creative.serialize.minecraft.MinecraftResourcePackReader;
 import team.unnamed.creative.sound.SoundEvent;
@@ -56,8 +54,7 @@ public class OraxenPack {
         });
 
         importedPack.fonts().forEach(font -> {
-            Font baseFont = resourcePack.font(font.key());
-            if (baseFont != null) font.providers().addAll(baseFont.providers());
+            Optional.ofNullable(resourcePack.font(font.key())).ifPresent(base -> font.providers().addAll(base.providers()));
             font.addTo(resourcePack);
         });
 
@@ -77,8 +74,7 @@ public class OraxenPack {
         });
 
         importedPack.languages().forEach(language -> {
-            Language baseLanguage = resourcePack.language(language.key());
-            if (baseLanguage != null) baseLanguage.translations().putAll(language.translations());
+            Optional.ofNullable(resourcePack.language(language.key())).ifPresent(base -> language.translations().putAll(base.translations()));
             language.addTo(resourcePack);
         });
     }
