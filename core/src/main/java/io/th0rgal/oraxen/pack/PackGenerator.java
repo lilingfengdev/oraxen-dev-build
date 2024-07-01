@@ -10,13 +10,17 @@ import io.th0rgal.oraxen.font.FontManager;
 import io.th0rgal.oraxen.font.Glyph;
 import io.th0rgal.oraxen.font.Shift;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.custom_block.CustomBlockFactory;
-import io.th0rgal.oraxen.utils.*;
+import io.th0rgal.oraxen.utils.AdventureUtils;
+import io.th0rgal.oraxen.utils.EventUtils;
+import io.th0rgal.oraxen.utils.ParseUtils;
+import io.th0rgal.oraxen.utils.PluginUtils;
 import io.th0rgal.oraxen.utils.customarmor.CustomArmor;
 import io.th0rgal.oraxen.utils.customarmor.CustomArmorType;
 import io.th0rgal.oraxen.utils.customarmor.ShaderArmorTextures;
 import io.th0rgal.oraxen.utils.customarmor.TrimArmorDatapack;
 import io.th0rgal.oraxen.utils.logs.Logs;
 import net.kyori.adventure.key.Key;
+import org.bukkit.Bukkit;
 import org.jetbrains.annotations.NotNull;
 import team.unnamed.creative.BuiltResourcePack;
 import team.unnamed.creative.ResourcePack;
@@ -44,7 +48,6 @@ public class PackGenerator {
     @NotNull private ResourcePack resourcePack = ResourcePack.resourcePack();
     private BuiltResourcePack builtPack;
     private final CustomArmor customArmorHandler;
-    private final PackObfuscator packObfuscator;
     private final MinecraftResourcePackReader reader = MinecraftResourcePackReader.minecraft();
     private final MinecraftResourcePackWriter writer = MinecraftResourcePackWriter.minecraft();
 
@@ -54,55 +57,56 @@ public class PackGenerator {
         if (CustomArmorType.getSetting().equals(CustomArmorType.SHADER)) customArmorHandler = new ShaderArmorTextures();
         else if (CustomArmorType.getSetting().equals(CustomArmorType.TRIMS)) customArmorHandler = new TrimArmorDatapack();
         else customArmorHandler = new CustomArmor();
-        packObfuscator = new PackObfuscator(resourcePack);
     }
 
     public void generatePack() {
         EventUtils.callEvent(new OraxenPrePackGenerateEvent(resourcePack));
-        Logs.logInfo("Generating resourcepack...");
-        if (Settings.PACK_IMPORT_DEFAULT.toBool()) importDefaultPack();
-        if (Settings.PACK_IMPORT_EXTERNAL.toBool()) importExternalPacks();
-        if (Settings.PACK_IMPORT_MODEL_ENGINE.toBool()) importModelEnginePack();
 
-        try {
-            OraxenPack.mergePack(resourcePack, reader.readFromDirectory(OraxenPlugin.get().packPath().toFile()));
-        } catch (Exception e) {
-            Logs.logError("Failed to read Oraxen/pack/assets-folder to a ResourcePack");
-            if (!Settings.DEBUG.toBool()) Logs.logError(e.getMessage());
-            else e.printStackTrace();
-        }
+        Bukkit.getScheduler().runTaskAsynchronously(OraxenPlugin.get(), () -> {
+            Logs.logInfo("Generating resourcepack...");
+            if (Settings.PACK_IMPORT_DEFAULT.toBool()) importDefaultPack();
+            if (Settings.PACK_IMPORT_EXTERNAL.toBool()) importExternalPacks();
+            if (Settings.PACK_IMPORT_MODEL_ENGINE.toBool()) importModelEnginePack();
 
-        resourcePack.removeUnknownFile("pack.zip");
-        for (Map.Entry<String, Writable> entry : new LinkedHashSet<>(resourcePack.unknownFiles().entrySet()))
-            if (entry.getKey().startsWith("external_packs/")) resourcePack.removeUnknownFile(entry.getKey());
-            else if (entry.getKey().startsWith("obfuscationCache/")) resourcePack.removeUnknownFile(entry.getKey());
+            try {
+                OraxenPack.mergePack(resourcePack, reader.readFromDirectory(OraxenPlugin.get().packPath().toFile()));
+            } catch (Exception e) {
+                Logs.logError("Failed to read Oraxen/pack/assets-folder to a ResourcePack");
+                if (!Settings.DEBUG.toBool()) Logs.logError(e.getMessage());
+                else e.printStackTrace();
+            }
 
-        CustomBlockFactory.get().blockStates().forEach(resourcePack::blockState);
-        addItemPackFiles();
-        addGlyphFiles();
-        addSoundFile();
-        parseLanguageFiles();
-        customArmorHandler.generateNeededFiles();
-        if (Settings.HIDE_SCOREBOARD_NUMBERS.toBool()) hideScoreboardNumbers();
-        if (Settings.HIDE_SCOREBOARD_BACKGROUND.toBool()) hideScoreboardBackground();
+            resourcePack.removeUnknownFile("pack.zip");
+            for (Map.Entry<String, Writable> entry : new LinkedHashSet<>(resourcePack.unknownFiles().entrySet()))
+                if (entry.getKey().startsWith("external_packs/")) resourcePack.removeUnknownFile(entry.getKey());
+                else if (entry.getKey().startsWith(".deobfCachedPacks")) resourcePack.removeUnknownFile(entry.getKey());
 
-        removeExcludedFileExtensions();
-        sortModelOverrides();
+            CustomBlockFactory.get().blockStates().forEach(resourcePack::blockState);
+            addItemPackFiles();
+            addGlyphFiles();
+            addSoundFile();
+            parseLanguageFiles();
+            customArmorHandler.generateNeededFiles();
+            if (Settings.HIDE_SCOREBOARD_NUMBERS.toBool()) hideScoreboardNumbers();
+            if (Settings.HIDE_SCOREBOARD_BACKGROUND.toBool()) hideScoreboardBackground();
 
-        PackSlicer.processInputs(resourcePack);
+            removeExcludedFileExtensions();
+            sortModelOverrides();
 
-        File cachedZip = OraxenPlugin.get().packPath().resolve("cachedPack.zip").toFile();
-        File packZip = OraxenPlugin.get().packPath().resolve("pack.zip").toFile();
-        if (packObfuscator.obfuscationType() != PackObfuscator.PackObfuscationType.NONE) resourcePack = packObfuscator.obfuscatePack();
-        else cachedZip.delete();
+            PackSlicer.processInputs(resourcePack);
 
-        EventUtils.callEvent(new OraxenPostPackGenerateEvent(resourcePack));
+            resourcePack = new PackObfuscator(resourcePack, writer.build(resourcePack).hash()).obfuscatePack();
 
-        MinecraftResourcePackWriter.minecraft().writeToZipFile(OraxenPlugin.get().packPath().resolve("pack.zip").toFile(), resourcePack);
+            File packZip = OraxenPlugin.get().packPath().resolve("pack.zip").toFile();
+            if (Settings.PACK_ZIP.toBool()) writer.writeToZipFile(packZip, resourcePack);
+            builtPack = writer.build(resourcePack);
 
-        if (Settings.PACK_ZIP.toBool()) writer.writeToZipFile(packZip, resourcePack);
-        builtPack = writer.build(resourcePack);
-        Logs.logSuccess("Finished generating resourcepack!", true);
+            Bukkit.getScheduler().scheduleSyncDelayedTask(OraxenPlugin.get(), () -> {
+                EventUtils.callEvent(new OraxenPostPackGenerateEvent(resourcePack));
+                Logs.logSuccess("Finished generating resourcepack!", true);
+                OraxenPlugin.get().packServer().uploadPack();
+            });
+        });
     }
 
     private void sortModelOverrides() {
@@ -183,12 +187,16 @@ public class PackGenerator {
     }
 
     private void importDefaultPack() {
-        File defaultPack = externalPacks.resolve("DefaultPack.zip").toFile();
-        if (!defaultPack.exists()) return;
+        Optional<File> defaultPack = Arrays.stream(Objects.requireNonNullElse(externalPacks.toFile().listFiles(), new File[]{}))
+                .filter(f -> f.getName().startsWith("DefaultPack_")).findFirst();
+        if (defaultPack.isEmpty()) return;
         Logs.logInfo("Importing DefaultPack...");
 
         try {
-            OraxenPack.mergePack(resourcePack, reader.readFromZipFile(defaultPack));
+            OraxenPack.mergePack(resourcePack, defaultPack.get().isDirectory()
+                    ? reader.readFromDirectory(defaultPack.get())
+                    : reader.readFromZipFile(defaultPack.get())
+            );
         } catch (Exception e) {
             Logs.logError("Failed to read Oraxen's DefaultPack...");
             if (!Settings.DEBUG.toBool()) Logs.logError(e.getMessage());
@@ -199,7 +207,7 @@ public class PackGenerator {
 
     private void importExternalPacks() {
         for (File file : Objects.requireNonNullElse(externalPacks.toFile().listFiles(), new File[]{})) {
-            if (file == null || file.getName().equals("DefaultPack.zip")) continue;
+            if (file == null || file.getName().startsWith("DefaultPack_")) continue;
             if (file.isDirectory()) {
                 Logs.logInfo("Importing pack " + file.getName() + "...");
                 try {

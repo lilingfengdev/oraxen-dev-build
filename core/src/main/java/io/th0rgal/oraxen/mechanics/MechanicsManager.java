@@ -16,20 +16,13 @@ import io.th0rgal.oraxen.mechanics.provided.farming.smelting.SmeltingMechanicFac
 import io.th0rgal.oraxen.mechanics.provided.gameplay.custom_block.CustomBlockFactory;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.custom_block.noteblock.NoteBlockMechanicFactory;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.custom_block.stringblock.StringBlockMechanicFactory;
-import io.th0rgal.oraxen.mechanics.provided.gameplay.durability.DurabilityMechanicFactory;
-import io.th0rgal.oraxen.mechanics.provided.gameplay.efficiency.EfficiencyMechanicFactory;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.FurnitureFactory;
-import io.th0rgal.oraxen.mechanics.provided.gameplay.repair.RepairMechanicFactory;
 import io.th0rgal.oraxen.mechanics.provided.misc.armor_effects.ArmorEffectsFactory;
 import io.th0rgal.oraxen.mechanics.provided.misc.backpack.BackpackMechanicFactory;
 import io.th0rgal.oraxen.mechanics.provided.misc.commands.CommandsMechanicFactory;
-import io.th0rgal.oraxen.mechanics.provided.misc.consumable.ConsumableMechanicFactory;
-import io.th0rgal.oraxen.mechanics.provided.misc.consumablepotioneffects.ConsumablePotionEffectsFactory;
 import io.th0rgal.oraxen.mechanics.provided.misc.custom.CustomMechanicFactory;
-import io.th0rgal.oraxen.mechanics.provided.misc.food.FoodMechanicFactory;
 import io.th0rgal.oraxen.mechanics.provided.misc.itemtype.ItemTypeMechanicFactory;
 import io.th0rgal.oraxen.mechanics.provided.misc.misc.MiscMechanicFactory;
-import io.th0rgal.oraxen.mechanics.provided.misc.music_disc.MusicDiscMechanicFactory;
 import io.th0rgal.oraxen.mechanics.provided.misc.soulbound.SoulBoundMechanicFactory;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
@@ -53,21 +46,14 @@ public class MechanicsManager {
     public static void registerNativeMechanics() {
         // misc
         registerFactory("armor_effects", ArmorEffectsFactory::new);
-        registerFactory("consumable_potion_effects", ConsumablePotionEffectsFactory::new);
         registerFactory("soulbound", SoulBoundMechanicFactory::new);
         registerFactory("itemtype", ItemTypeMechanicFactory::new);
-        registerFactory("consumable", ConsumableMechanicFactory::new);
         registerFactory("custom", CustomMechanicFactory::new);
         registerFactory("commands", CommandsMechanicFactory::new);
         registerFactory("backpack", BackpackMechanicFactory::new);
-        registerFactory("music_disc", MusicDiscMechanicFactory::new);
         registerFactory("misc", MiscMechanicFactory::new);
 
         // gameplay
-        registerFactory("food", FoodMechanicFactory::new);
-        registerFactory("repair", RepairMechanicFactory::new);
-        registerFactory("durability", DurabilityMechanicFactory::new);
-        registerFactory("efficiency", EfficiencyMechanicFactory::new);
         registerFactory("furniture", FurnitureFactory::new);
         registerFactory("noteblock", NoteBlockMechanicFactory::new);
         registerFactory("stringblock", StringBlockMechanicFactory::new);

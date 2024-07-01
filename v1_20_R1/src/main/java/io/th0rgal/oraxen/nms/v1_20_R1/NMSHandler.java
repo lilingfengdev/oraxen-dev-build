@@ -21,7 +21,7 @@ import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.TagNetworkSerialization;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
+import io.th0rgal.oraxen.utils.InteractionResult;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.item.BlockItem;
@@ -33,6 +33,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import org.bukkit.*;
 import org.bukkit.block.Block;
+import org.bukkit.craftbukkit.v1_20_R1.block.CraftBlock;
 import org.bukkit.craftbukkit.v1_20_R1.entity.CraftPlayer;
 import org.bukkit.craftbukkit.v1_20_R1.inventory.CraftItemStack;
 import org.bukkit.entity.Player;
@@ -103,13 +104,13 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
         if (serverPlayer.getCooldowns().isOnCooldown(nmsStack.getItem())) return null;
 
         if (!(nmsStack.getItem() instanceof BlockItem blockItem)) {
-            InteractionResult result = nmsStack.getItem().useOn(new UseOnContext(serverPlayer, hand, hitResult));
-            return player.isSneaking() && player.getGameMode() != GameMode.CREATIVE ? result : serverPlayer.gameMode.useItem(
+            InteractionResult result = InteractionResult.fromNms(nmsStack.getItem().useOn(new UseOnContext(serverPlayer, hand, hitResult)));
+            return player.isSneaking() && player.getGameMode() != GameMode.CREATIVE ? result : InteractionResult.fromNms(serverPlayer.gameMode.useItem(
                     serverPlayer, serverPlayer.level(), nmsStack, hand
-            );
+            ));
         }
 
-        InteractionResult result = blockItem.place(placeContext);
+        InteractionResult result = InteractionResult.fromNms(blockItem.place(placeContext));
         if (result == InteractionResult.FAIL) return null;
 
         if(!player.isSneaking()) {
@@ -191,7 +192,7 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
     }
 
     @Override
-    public void applyMiningFatigue(Player player) {
+    public void applyMiningEffect(Player player) {
         ((CraftPlayer) player).getHandle().connection.send(
                 new ClientboundUpdateMobEffectPacket(player.getEntityId(),
                         new MobEffectInstance(MobEffects.DIG_SLOWDOWN, 0, -1,
@@ -200,7 +201,12 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
     }
 
     @Override
-    public void removeMiningFatigue(Player player) {
+    public void removeMiningEffect(Player player) {
         ((CraftPlayer) player).getHandle().connection.send(new ClientboundRemoveMobEffectPacket(player.getEntityId(), MobEffects.DIG_SLOWDOWN));
+    }
+
+    @Override
+    public String getNoteBlockInstrument(Block block) {
+        return ((CraftBlock) block).getNMS().instrument().toString();
     }
 }

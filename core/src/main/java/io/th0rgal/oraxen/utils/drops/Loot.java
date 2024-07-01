@@ -5,8 +5,8 @@ import io.th0rgal.oraxen.api.OraxenItems;
 import io.th0rgal.oraxen.compatibilities.provided.ecoitems.WrappedEcoItem;
 import io.th0rgal.oraxen.compatibilities.provided.mythiccrucible.WrappedCrucibleItem;
 import io.th0rgal.oraxen.items.ItemUpdater;
+import io.th0rgal.oraxen.utils.Utils;
 import net.Indyuce.mmoitems.MMOItems;
-import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
@@ -25,9 +25,7 @@ public class Loot {
     public Loot(LinkedHashMap<String, Object> config, String sourceID) {
         this.probability = Double.parseDouble(config.getOrDefault("probability", 1).toString());
         if (config.getOrDefault("amount", "") instanceof String amount && amount.contains("..")) {
-            int minAmount = Integer.getInteger(StringUtils.substringBefore(amount, ".."), 1);
-            int maxAmount = Math.max(Integer.getInteger(StringUtils.substringAfter(amount, ".."), 1), minAmount);
-            this.amount = new IntegerRange(minAmount, maxAmount);
+            this.amount = Utils.parseToRange(amount);
         } else this.amount = new IntegerRange(1,1);
         this.config = config;
         this.sourceID = sourceID;
@@ -86,6 +84,10 @@ public class Loot {
         return this;
     }
 
+    public String sourceID() {
+        return sourceID;
+    }
+
     public double probability() {
         return probability;
     }
@@ -94,9 +96,11 @@ public class Loot {
         return this.amount;
     }
 
-    public void dropNaturally(Location location, int amountMultiplier) {
-        if (Math.random() <= probability)
-            dropItems(location, amountMultiplier);
+    public int dropNaturally(Location location, int amountMultiplier) {
+        if (Math.random() <= probability) {
+            return dropItems(location, amountMultiplier);
+        }
+        return 0;
     }
 
     public ItemStack getItem(int amountMultiplier) {
@@ -106,7 +110,12 @@ public class Loot {
         return ItemUpdater.updateItem(stack);
     }
 
-    private void dropItems(Location location, int amountMultiplier) {
-        if (location.getWorld() != null) location.getWorld().dropItemNaturally(location, getItem(amountMultiplier));
+    private int dropItems(Location location, int amountMultiplier) {
+        ItemStack item = getItem(amountMultiplier);
+        if (location.getWorld() != null) {
+            location.getWorld().dropItemNaturally(location, item);
+            return item.getAmount();
+        }
+        return 0;
     }
 }

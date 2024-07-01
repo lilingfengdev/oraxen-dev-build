@@ -3,7 +3,10 @@ package io.th0rgal.oraxen.api;
 import com.jeff_media.morepersistentdatatypes.DataType;
 import io.th0rgal.oraxen.OraxenPlugin;
 import io.th0rgal.oraxen.api.events.custom_block.noteblock.OraxenNoteBlockBreakEvent;
+import io.th0rgal.oraxen.api.events.custom_block.noteblock.OraxenNoteBlockDropLootEvent;
 import io.th0rgal.oraxen.api.events.custom_block.stringblock.OraxenStringBlockBreakEvent;
+import io.th0rgal.oraxen.api.events.custom_block.stringblock.OraxenStringBlockDropLootEvent;
+import io.th0rgal.oraxen.mechanics.provided.gameplay.BreakableMechanic;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.custom_block.CustomBlockMechanic;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.custom_block.noteblock.NoteBlockMechanic;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.custom_block.noteblock.NoteBlockMechanicFactory;
@@ -16,6 +19,7 @@ import io.th0rgal.oraxen.utils.BlockHelpers;
 import io.th0rgal.oraxen.utils.EventUtils;
 import io.th0rgal.oraxen.utils.VersionUtil;
 import io.th0rgal.oraxen.utils.drops.Drop;
+import io.th0rgal.oraxen.utils.drops.DroppedLoot;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -29,6 +33,7 @@ import org.bukkit.persistence.PersistentDataType;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -227,7 +232,8 @@ public class OraxenBlocks {
 
         NoteBlockMechanic noteMechanic = getNoteBlockMechanic(block);
         StringBlockMechanic stringMechanic = getStringMechanic(block);
-        Drop overrideDrop = !forceDrop ? null : noteMechanic != null ? noteMechanic.drop() : stringMechanic != null ? stringMechanic.drop() : null;
+        BreakableMechanic breakable = noteMechanic != null ? noteMechanic.breakable() : stringMechanic != null ? stringMechanic.breakable() : null;
+        Drop overrideDrop = !forceDrop ? null : breakable != null ? breakable.drop() : null;
         return remove(location, player, overrideDrop);
     }
 
@@ -256,7 +262,7 @@ public class OraxenBlocks {
 
         Location loc = block.getLocation();
         boolean hasOverrideDrop = overrideDrop != null;
-        Drop drop = hasOverrideDrop ? overrideDrop : mechanic.drop();
+        Drop drop = hasOverrideDrop ? overrideDrop : mechanic.breakable().drop();
         if (player != null) {
             OraxenNoteBlockBreakEvent noteBlockBreakEvent = new OraxenNoteBlockBreakEvent(mechanic, block, player);
             if (!EventUtils.callEvent(noteBlockBreakEvent)) return false;
@@ -271,7 +277,13 @@ public class OraxenBlocks {
             if (VersionUtil.isPaperServer()) world.sendGameEvent(player, GameEvent.BLOCK_DESTROY, loc.toVector());
             world.playEffect(loc, Effect.STEP_SOUND, block.getBlockData());
         }
-        if (drop != null) drop.spawns(loc, itemInHand);
+
+        if (drop != null) {
+            List<DroppedLoot> loots = drop.spawns(loc, itemInHand);
+            if (!loots.isEmpty() && player != null) {
+                EventUtils.callEvent(new OraxenNoteBlockDropLootEvent(mechanic, block, player, loots));
+            }
+        }
 
         if (mechanic.isStorage() && mechanic.storage().getStorageType() == StorageMechanic.StorageType.STORAGE) {
             mechanic.storage().dropStorageContent(block);
@@ -289,7 +301,7 @@ public class OraxenBlocks {
         if (mechanic == null) return false;
 
         boolean hasDropOverride = overrideDrop != null;
-        Drop drop = hasDropOverride ? overrideDrop : mechanic.drop();
+        Drop drop = hasDropOverride ? overrideDrop : mechanic.breakable().drop();
         if (player != null) {
             OraxenStringBlockBreakEvent wireBlockBreakEvent = new OraxenStringBlockBreakEvent(mechanic, block, player);
             if (!EventUtils.callEvent(wireBlockBreakEvent)) return false;
@@ -301,7 +313,13 @@ public class OraxenBlocks {
 
             if (VersionUtil.isPaperServer()) block.getWorld().sendGameEvent(player, GameEvent.BLOCK_DESTROY, block.getLocation().toVector());
         }
-        if (drop != null) drop.spawns(block.getLocation(), itemInHand);
+
+        if (drop != null) {
+            List<DroppedLoot> loots = drop.spawns(block.getLocation(), itemInHand);
+            if (!loots.isEmpty() && player != null) {
+                EventUtils.callEvent(new OraxenStringBlockDropLootEvent(mechanic, block, player, loots));
+            }
+        }
 
         final Block blockAbove = block.getRelative(BlockFace.UP);
         if (mechanic.isTall()) blockAbove.setType(Material.AIR);

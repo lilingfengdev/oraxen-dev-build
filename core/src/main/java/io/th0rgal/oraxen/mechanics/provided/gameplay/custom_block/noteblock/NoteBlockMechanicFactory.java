@@ -15,6 +15,7 @@ import io.th0rgal.oraxen.utils.logs.Logs;
 import net.kyori.adventure.key.Key;
 import org.apache.commons.lang3.Range;
 import org.bukkit.Instrument;
+import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.type.NoteBlock;
 import org.bukkit.configuration.ConfigurationSection;
@@ -29,12 +30,14 @@ import java.util.*;
 
 public class NoteBlockMechanicFactory extends MechanicFactory {
 
+    public static final NamespacedKey MINEABLE_PACKET_LISTENER = NamespacedKey.fromString("mineable_with_key", OraxenPlugin.get());
     private static final Integer MAX_PER_INSTRUMENT = 50;
     public static final Integer MAX_BLOCK_VARIATION = Instrument.values().length * MAX_PER_INSTRUMENT - 1;
     public static final Map<Integer, NoteBlockMechanic> BLOCK_PER_VARIATION = new HashMap<>();
     private static NoteBlockMechanicFactory instance;
     public final List<String> toolTypes;
     public final boolean customSounds;
+    public final boolean reimplementNoteblockFeatures;
     private final boolean removeMineableTag;
     private boolean notifyOfDeprecation = true;
 
@@ -45,6 +48,7 @@ public class NoteBlockMechanicFactory extends MechanicFactory {
         toolTypes = section.getStringList("tool_types");
         customSounds = OraxenPlugin.get().configsManager().getMechanics().getBoolean("custom_block_sounds.noteblock", true);
         removeMineableTag = section.getBoolean("remove_mineable_tag", false);
+        reimplementNoteblockFeatures = section.getBoolean("reimplement_noteblock_features", false);
 
         MechanicsManager.registerListeners(OraxenPlugin.get(), getMechanicID(),
                 new NoteBlockMechanicListener(),
@@ -52,6 +56,7 @@ public class NoteBlockMechanicFactory extends MechanicFactory {
                 new BeaconListener()
         );
         if (customSounds) MechanicsManager.registerListeners(OraxenPlugin.get(), getMechanicID(), new NoteBlockSoundListener());
+
         BeaconTagDatapack.generateDatapack();
 
         // Physics-related stuff
@@ -61,10 +66,12 @@ public class NoteBlockMechanicFactory extends MechanicFactory {
             MechanicsManager.registerListeners(OraxenPlugin.get(), getMechanicID(), new NoteBlockMechanicPhysicsListener());
         if (!NMSHandlers.isNoteblockUpdatesDisabled()) {
             Logs.logError("Papers block-updates.disable-noteblock-updates is not enabled.");
+            if (reimplementNoteblockFeatures) Logs.logError("reimplement_noteblock_feature mechanic will not be enabled");
             Logs.logWarning("It is recommended to enable this setting for improved performance and prevent bugs with noteblocks");
             Logs.logWarning("Otherwise Oraxen needs to listen to very taxing events, which also introduces some bugs");
             Logs.logWarning("You can enable this setting in ServerFolder/config/paper-global.yml", true);
-        }
+        } else if (reimplementNoteblockFeatures)
+            MechanicsManager.registerListeners(OraxenPlugin.get(), getMechanicID(), new NoteBlockMechanicInstrumentListener());
     }
 
     public static boolean isEnabled() {

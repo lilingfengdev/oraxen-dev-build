@@ -3,6 +3,8 @@ import xyz.jpenilla.resourcefactory.bukkit.Permission
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.util.*
+import kotlin.io.path.Path
+import kotlin.io.path.listDirectoryEntries
 
 plugins {
     id("java")
@@ -14,44 +16,13 @@ plugins {
     alias(idofrontLibs.plugins.mia.publication)
 }
 
-class NMSVersion(val nmsVersion: String, val serverVersion: String, val javaVersion: Int)
-infix fun String.toNms(that: String) = Pair(this, that)
-infix fun Pair<String, String>.withJava(javaVersion: Int): NMSVersion = NMSVersion(first, second, javaVersion)
+class NMSVersion(val nmsVersion: String, val serverVersion: String)
+infix fun String.toNms(that: String) = NMSVersion(this, that)
 val SUPPORTED_VERSIONS: List<NMSVersion> = listOf(
-    "v1_20_R1" toNms "1.20.1-R0.1-SNAPSHOT" withJava 17,
-    "v1_20_R2" toNms "1.20.2-R0.1-SNAPSHOT" withJava 17,
-    "v1_20_R3" toNms "1.20.4-R0.1-SNAPSHOT" withJava 17,
-    "v1_20_R4" toNms "1.20.6-R0.1-SNAPSHOT" withJava 21
+    "v1_20_R3" toNms "1.20.4-R0.1-SNAPSHOT",
+    "v1_20_R4" toNms "1.20.6-R0.1-SNAPSHOT",
+    "v1_21_R1" toNms "1.21-R0.1-SNAPSHOT"
 )
-
-SUPPORTED_VERSIONS.forEach {
-    project(":${it.nmsVersion}") {
-        apply(plugin = "java")
-        apply(plugin = "io.papermc.paperweight.userdev")
-
-        repositories {
-            maven("https://papermc.io/repo/repository/maven-public/") // Paper
-            maven("https://repo.mineinabyss.com/releases")
-        }
-
-        configurations.create("mojmap")
-
-        dependencies {
-            compileOnly(project(":core"))
-            paperDevBundle(it.serverVersion)
-        }
-
-        tasks {
-            compileJava {
-                options.encoding = Charsets.UTF_8.name()
-            }
-        }
-
-        java {
-            toolchain.languageVersion.set(JavaLanguageVersion.of(it.javaVersion))
-        }
-    }
-}
 
 val compiled = (project.findProperty("oraxen_compiled")?.toString() ?: "true").toBoolean()
 val pluginPath = project.findProperty("oraxen2_plugin_path")?.toString()
@@ -59,7 +30,7 @@ val devPluginPath = project.findProperty("oraxen_dev_plugin_path")?.toString()
 val foliaPluginPath = project.findProperty("oraxen_folia_plugin_path")?.toString()
 val spigotPluginPath = project.findProperty("oraxen_spigot_plugin_path")?.toString()
 val pluginVersion: String by project
-val commandApiVersion = "9.4.2"
+val commandApiVersion = "9.5.1"
 val adventureVersion = "4.17.0"
 val platformVersion = "4.3.3"
 val googleGsonVersion = "2.10.1"
@@ -106,7 +77,7 @@ allprojects {
         compileOnly("net.kyori:adventure-text-serializer-plain:$adventureVersion")
         compileOnly("net.kyori:adventure-text-serializer-ansi:$adventureVersion")
         compileOnly("net.kyori:adventure-platform-bukkit:$platformVersion")
-        compileOnly("com.comphenix.protocol:ProtocolLib:5.2.0-SNAPSHOT")
+        compileOnly("com.comphenix.protocol:ProtocolLib:5.3.0-SNAPSHOT")
         compileOnly("me.clip:placeholderapi:2.11.4")
         compileOnly("me.gabytm.util:actions-core:$actionsVersion")
         compileOnly("org.springframework:spring-expression:6.0.6")
@@ -127,7 +98,7 @@ allprojects {
         compileOnly("team.unnamed:creative-api:$creativeVersion")
         compileOnly("team.unnamed:creative-serializer-minecraft:$creativeVersion")
         compileOnly("team.unnamed:creative-server:$creativeVersion")
-        compileOnly(files("../libs/AxiomPaper-1.5.9.jar"))
+        compileOnly(files("../libs/AxiomPaper-1.5.12.jar"))
 
         implementation("dev.jorel:commandapi-bukkit-shade:$commandApiVersion")
         implementation("org.bstats:bstats-bukkit:3.0.0")
@@ -137,8 +108,7 @@ allprojects {
         implementation("com.jeff_media:MorePersistentDataTypes:2.4.0")
         implementation("com.jeff-media:persistent-data-serializer:1.0")
         implementation("org.jetbrains:annotations:24.1.0") { isTransitive = false }
-        implementation("dev.triumphteam:triumph-gui:3.1.8-SNAPSHOT") { exclude("net.kyori") }
-        implementation("com.github.toxicity188:DataComponentAPI:1.0.10")
+        implementation("dev.triumphteam:triumph-gui:3.1.10") { exclude("net.kyori") }
 
         implementation("me.gabytm.util:actions-spigot:$actionsVersion") { exclude(group = "com.google.guava") }
     }
@@ -152,7 +122,7 @@ dependencies {
     }
 }
 
-project.java {
+java {
     toolchain.languageVersion.set(JavaLanguageVersion.of(21))
 }
 
@@ -167,7 +137,7 @@ tasks {
         downloadPlugins {
             url("https://ci.dmulloy2.net/job/ProtocolLib/lastSuccessfulBuild/artifact/build/libs/ProtocolLib.jar")
         }
-        minecraftVersion("1.20.6")
+        minecraftVersion("1.21")
     }
 
     jar {
@@ -234,7 +204,6 @@ bukkitPluginYaml {
     libraries = listOf(
         "org.springframework:spring-expression:6.0.6",
         "org.apache.httpcomponents:httpmime:4.5.13",
-        //"dev.jorel:commandapi-bukkit-shade-mojang-mapped:$commandApiVersion",
         "net.kyori:adventure-text-minimessage:$adventureVersion",
         "net.kyori:adventure-text-serializer-plain:$adventureVersion",
         "net.kyori:adventure-text-serializer-ansi:$adventureVersion",
@@ -258,7 +227,13 @@ if (pluginPath != null) {
             dependsOn(shadowJar, jar)
             from(defaultPath)
             into(pluginPath)
-            doLast { println("Copied to plugin directory $pluginPath") }
+            doLast {
+                println("Copied to plugin directory $pluginPath")
+                Path(pluginPath).listDirectoryEntries()
+                    .filter { it.fileName.toString().matches("oraxen-.*.jar".toRegex()) }
+                    .filterNot { it.fileName.toString().endsWith("$pluginVersion.jar") }
+                    .forEach { delete(it) }
+            }
         }
         build.get().dependsOn(copyJar)
     }

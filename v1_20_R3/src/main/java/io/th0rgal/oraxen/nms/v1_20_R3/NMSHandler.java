@@ -12,6 +12,7 @@ import io.th0rgal.oraxen.nms.GlyphHandler;
 import io.th0rgal.oraxen.nms.v1_20_R3.furniture.FurniturePacketManager;
 import io.th0rgal.oraxen.pack.server.OraxenPackServer;
 import io.th0rgal.oraxen.utils.BlockHelpers;
+import io.th0rgal.oraxen.utils.InteractionResult;
 import io.th0rgal.oraxen.utils.VersionUtil;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
@@ -33,7 +34,6 @@ import net.minecraft.tags.BlockTags;
 import net.minecraft.tags.TagNetworkSerialization;
 import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.InteractionResult;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.item.BlockItem;
@@ -45,6 +45,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import org.bukkit.*;
 import org.bukkit.block.Block;
+import org.bukkit.craftbukkit.v1_20_R3.block.CraftBlock;
 import org.bukkit.craftbukkit.v1_20_R3.entity.CraftPlayer;
 import org.bukkit.craftbukkit.v1_20_R3.inventory.CraftItemStack;
 import org.bukkit.entity.Player;
@@ -57,6 +58,8 @@ import javax.annotation.Nullable;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
+
+import static io.th0rgal.oraxen.pack.PackListener.CONFIG_PHASE_PACKET_LISTENER;
 
 @SuppressWarnings("unused")
 public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
@@ -79,10 +82,9 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
     }
 
     @Override
-    public void registerConfigurationPacketListener() {
-        NamespacedKey key = NamespacedKey.fromString("configuration_listener", OraxenPlugin.get());
-        ChannelInitializeListenerHolder.addListener(key, channel ->
-                channel.pipeline().addBefore("packet_handler", key.toString(), new ChannelDuplexHandler() {
+    public void registerConfigPhaseListener() {
+        ChannelInitializeListenerHolder.addListener(CONFIG_PHASE_PACKET_LISTENER, channel ->
+                channel.pipeline().addBefore("packet_handler", CONFIG_PHASE_PACKET_LISTENER.toString(), new ChannelDuplexHandler() {
                             private final Connection connection = (Connection) channel.pipeline().get("packet_handler");
 
                             @Override
@@ -114,6 +116,11 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
                             }
                         }
                 ));
+    }
+
+    @Override
+    public void unregisterConfigPhaseListener() {
+        ChannelInitializeListenerHolder.removeListener(CONFIG_PHASE_PACKET_LISTENER);
     }
 
     private boolean finishConfigPhase(ServerboundResourcePackPacket.Action action) {
@@ -153,16 +160,15 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
         BlockPlaceContext placeContext = new BlockPlaceContext(new UseOnContext(serverPlayer, hand, hitResult));
 
         if (!(nmsStack.getItem() instanceof BlockItem blockItem)) {
-            InteractionResult result = nmsStack.getItem().useOn(new UseOnContext(serverPlayer, hand, hitResult));
-            return player.isSneaking() && player.getGameMode() != GameMode.CREATIVE ? result : serverPlayer.gameMode.useItem(
-                    serverPlayer, serverPlayer.level(), nmsStack, hand
-            );
+            InteractionResult result = InteractionResult.fromNms(nmsStack.getItem().useOn(new UseOnContext(serverPlayer, hand, hitResult)));
+            return player.isSneaking() && player.getGameMode() != GameMode.CREATIVE ? result
+                    : InteractionResult.fromNms(serverPlayer.gameMode.useItem(serverPlayer, serverPlayer.level(), nmsStack, hand));
         }
 
-        InteractionResult result = blockItem.place(placeContext);
+        InteractionResult result = InteractionResult.fromNms(blockItem.place(placeContext));
         if (result == InteractionResult.FAIL) return null;
 
-        if (!player.isSneaking()) {
+        if(!player.isSneaking()) {
             World world = player.getWorld();
             BlockPos clickPos = placeContext.getClickedPos();
             Block block = world.getBlockAt(clickPos.getX(), clickPos.getY(), clickPos.getZ());
@@ -242,7 +248,7 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
     }
 
     @Override
-    public void applyMiningFatigue(Player player) {
+    public void applyMiningEffect(Player player) {
         ((CraftPlayer) player).getHandle().connection.send(
                 new ClientboundUpdateMobEffectPacket(player.getEntityId(),
                         new MobEffectInstance(MobEffects.DIG_SLOWDOWN, 0, -1,
@@ -251,7 +257,12 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
     }
 
     @Override
-    public void removeMiningFatigue(Player player) {
+    public void removeMiningEffect(Player player) {
         ((CraftPlayer) player).getHandle().connection.send(new ClientboundRemoveMobEffectPacket(player.getEntityId(), MobEffects.DIG_SLOWDOWN));
+    }
+
+    @Override
+    public String getNoteBlockInstrument(Block block) {
+        return ((CraftBlock) block).getNMS().instrument().toString();
     }
 }

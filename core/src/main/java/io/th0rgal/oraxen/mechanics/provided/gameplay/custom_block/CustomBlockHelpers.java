@@ -7,18 +7,13 @@ import io.th0rgal.oraxen.mechanics.provided.gameplay.custom_block.noteblock.Note
 import io.th0rgal.oraxen.mechanics.provided.gameplay.custom_block.noteblock.NoteMechanicHelpers;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.custom_block.stringblock.StringBlockMechanic;
 import io.th0rgal.oraxen.nms.NMSHandlers;
-import io.th0rgal.oraxen.utils.BlockHelpers;
-import io.th0rgal.oraxen.utils.EventUtils;
-import io.th0rgal.oraxen.utils.Utils;
-import io.th0rgal.oraxen.utils.VersionUtil;
+import io.th0rgal.oraxen.utils.*;
 import io.th0rgal.protectionlib.ProtectionLib;
-import net.minecraft.world.InteractionResult;
 import org.apache.commons.lang3.Range;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.Sign;
-import org.bukkit.block.data.Bisected;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.sign.Side;
 import org.bukkit.entity.FallingBlock;
@@ -35,13 +30,14 @@ public class CustomBlockHelpers {
                                             final Block placedAgainst, final BlockFace face, @Nullable final CustomBlockMechanic newMechanic, final BlockData newData) {
         final Block target;
         final Material itemMaterial = item.getType();
-        final Material type = placedAgainst.getType();
-        final Range<Integer> worldHeightRange = Range.between(placedAgainst.getWorld().getMinHeight(), placedAgainst.getWorld().getMaxHeight() - 1);
+        final World world = placedAgainst.getWorld();
+        final Range<Integer> worldHeightRange = Range.of(world.getMinHeight(), world.getMaxHeight() - 1);
 
-        if (BlockHelpers.isReplaceable(type)) target = placedAgainst;
+        if (BlockHelpers.isReplaceable(placedAgainst)) target = placedAgainst;
         else {
             target = placedAgainst.getRelative(face);
-            if (newMechanic != null && !BlockHelpers.isReplaceable(target.getType())) return;
+
+            if (newMechanic != null && !BlockHelpers.isReplaceable(target)) return;
             else if (Tag.DOORS.isTagged(target.getType())) return;
         }
 
@@ -70,7 +66,7 @@ public class CustomBlockHelpers {
             blockPlaceEvent.setCancelled(true);
 
         if (newMechanic != null) {
-            if (BlockHelpers.isStandingInside(player, target)) blockPlaceEvent.setCancelled(true);
+            if (!(newMechanic instanceof StringBlockMechanic) && BlockHelpers.isStandingInside(player, target)) blockPlaceEvent.setCancelled(true);
         } else {
             if (!itemMaterial.isBlock() && itemMaterial != Material.FLINT_AND_STEEL && itemMaterial != Material.FIRE_CHARGE && itemMaterial != Material.STRING)
                 return;
@@ -112,29 +108,26 @@ public class CustomBlockHelpers {
                 return;
             }
 
-            BlockData blockBelowData = blockBelow.getBlockData();
-            if (oldData instanceof Bisected && blockBelowData instanceof Bisected) {
-                blockBelow.breakNaturally(true);
-            }
-
-            if (!blockBelow.canPlace(blockBelowData)) blockBelow.breakNaturally(true);
-            if (!blockAbove.canPlace(blockAbove.getBlockData())) blockAbove.breakNaturally(true);
-
             // Handle Falling NoteBlock-Mechanic blocks
             if (newMechanic instanceof NoteBlockMechanic noteMechanic) {
                 if (noteMechanic.isFalling() && blockBelow.getType().isAir()) {
                     Location fallingLocation = BlockHelpers.toCenterBlockLocation(target.getLocation());
                     OraxenBlocks.remove(target.getLocation(), null);
                     if (fallingLocation.getNearbyEntitiesByType(FallingBlock.class, 0.25).isEmpty())
-                        target.getWorld().spawnFallingBlock(fallingLocation, newData);
+                        world.spawnFallingBlock(fallingLocation, newData);
                     NoteMechanicHelpers.handleFallingOraxenBlockAbove(target);
                 }
             }
 
             if (player.getGameMode() != GameMode.CREATIVE) item.setAmount(item.getAmount() - 1);
+            if (newData != null) {
+                target.setType(Material.AIR);
+                target.setBlockData(newData, true);
+            }
+
             Utils.swingHand(player, hand);
         }
-        if (VersionUtil.isPaperServer()) target.getWorld().sendGameEvent(player, GameEvent.BLOCK_PLACE, target.getLocation().toVector());
+        if (VersionUtil.isPaperServer()) world.sendGameEvent(player, GameEvent.BLOCK_PLACE, target.getLocation().toVector());
 
     }
 }
