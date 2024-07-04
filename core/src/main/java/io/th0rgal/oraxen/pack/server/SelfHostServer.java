@@ -83,13 +83,14 @@ public class SelfHostServer implements OraxenPackServer {
         if (packServer == null) return;
         Logs.logError("Stopping Self-Host Pack-Server...");
         packServer.stop(0);
+        packServer = null;
     }
 
     private String publicAddress() {
         String urlString = "http://checkip.amazonaws.com/";
         String publicAddress;
         try {
-            URL url = new URL(urlString);
+            URL url = URI.create(urlString).toURL();
             try (BufferedReader br = new BufferedReader(new InputStreamReader(url.openStream()))) {
                 publicAddress = br.readLine();
             }

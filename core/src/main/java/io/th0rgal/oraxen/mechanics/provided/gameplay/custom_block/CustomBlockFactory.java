@@ -20,11 +20,14 @@ import java.util.List;
 
 public class CustomBlockFactory extends MechanicFactory {
 
+
     private static CustomBlockFactory instance;
 
     public CustomBlockFactory(String mechanicId) {
         super(mechanicId);
         instance = this;
+        CustomBlockRegistry.register(CustomBlockType.NOTEBLOCK);
+        CustomBlockRegistry.register(CustomBlockType.STRINGBLOCK);
         MechanicsManager.registerListeners(OraxenPlugin.get(), getMechanicID(), new CustomBlockListener(), new CustomBlockMiningListener());
     }
 
@@ -55,18 +58,16 @@ public class CustomBlockFactory extends MechanicFactory {
     @Override
     public CustomBlockMechanic parse(ConfigurationSection section) {
         String itemId = section.getParent().getParent().getName();
-        CustomBlockType type = CustomBlockType.fromMechanicSection(section);
-        CustomBlockMechanic mechanic = null;
-        if (type == CustomBlockType.NOTEBLOCK) {
-            if (NoteBlockMechanicFactory.isEnabled())
-                mechanic = NoteBlockMechanicFactory.get().parse(section);
-            else Logs.logError(itemId + " attempted to use " + type.name() + "-type but it has been disabled");
-        } else if (type == CustomBlockType.STRINGBLOCK) {
-            if (StringBlockMechanicFactory.isEnabled())
-                mechanic = StringBlockMechanicFactory.get().parse(section);
-            else Logs.logError(itemId + " attempted to use " + type.name() + "-type but it has been disabled");
+        CustomBlockType type = CustomBlockRegistry.fromMechanicSection(section);
+        CustomBlockMechanic mechanic;
+
+        if (type == null) return null;
+        if (type.factory() == null) {
+            Logs.logError(itemId + " attempted to use " + type.name() + "-type but it has been disabled");
+            return null;
         }
 
+        mechanic = (CustomBlockMechanic) type.factory().parse(section);
         addToImplemented(mechanic);
         return mechanic;
     }

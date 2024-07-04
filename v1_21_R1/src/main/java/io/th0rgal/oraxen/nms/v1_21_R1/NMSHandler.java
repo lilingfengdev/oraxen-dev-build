@@ -3,16 +3,23 @@ package io.th0rgal.oraxen.nms.v1_21_R1;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
+import io.papermc.paper.adventure.PaperAdventure;
 import io.papermc.paper.configuration.GlobalConfiguration;
 import io.papermc.paper.network.ChannelInitializeListenerHolder;
 import io.th0rgal.oraxen.OraxenPlugin;
+import io.th0rgal.oraxen.config.Settings;
 import io.th0rgal.oraxen.mechanics.provided.gameplay.custom_block.noteblock.NoteBlockMechanicFactory;
+import io.th0rgal.oraxen.mechanics.provided.gameplay.furniture.IFurniturePacketManager;
 import io.th0rgal.oraxen.nms.GlyphHandler;
+import io.th0rgal.oraxen.nms.v1_21_R1.furniture.FurniturePacketManager;
+import io.th0rgal.oraxen.pack.server.OraxenPackServer;
 import io.th0rgal.oraxen.utils.BlockHelpers;
 import io.th0rgal.oraxen.utils.InteractionResult;
 import io.th0rgal.oraxen.utils.VersionUtil;
+import io.th0rgal.oraxen.utils.logs.Logs;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntList;
+import net.kyori.adventure.resource.ResourcePackInfo;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
 import net.minecraft.core.component.DataComponentType;
@@ -20,7 +27,10 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.Connection;
+import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket;
 import net.minecraft.network.protocol.common.ClientboundUpdateTagsPacket;
+import net.minecraft.network.protocol.common.ServerboundResourcePackPacket;
+import net.minecraft.network.protocol.configuration.ClientboundFinishConfigurationPacket;
 import net.minecraft.network.protocol.game.ClientboundUpdateAttributesPacket;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
@@ -55,9 +65,12 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static io.th0rgal.oraxen.pack.PackListener.CONFIG_PHASE_PACKET_LISTENER;
+
 public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
 
     private final GlyphHandler glyphHandler;
+    private final FurniturePacketManager furniturePacketManager = new FurniturePacketManager();
 
     public NMSHandler() {
         this.glyphHandler = new io.th0rgal.oraxen.nms.v1_21_R1.GlyphHandler();
@@ -86,6 +99,67 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
     @Override
     public GlyphHandler glyphHandler() {
         return glyphHandler;
+    }
+
+    @Override
+    public IFurniturePacketManager furniturePacketManager() {
+        return furniturePacketManager;
+    }
+
+    @Override
+    public void registerConfigPhaseListener() {
+        ChannelInitializeListenerHolder.addListener(CONFIG_PHASE_PACKET_LISTENER, channel ->
+                channel.pipeline().addBefore("packet_handler", CONFIG_PHASE_PACKET_LISTENER.toString(), new ChannelDuplexHandler() {
+                            private final Connection connection = (Connection) channel.pipeline().get("packet_handler");
+
+                            @Override
+                            public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) {
+                                if (msg instanceof ClientboundFinishConfigurationPacket && connection.getPlayer().getBukkitEntity().getResourcePackStatus() == null) {
+                                    try {
+                                        OraxenPackServer packServer = OraxenPlugin.get().packServer();
+                                        ResourcePackInfo packInfo = packServer.packInfo();
+
+                                        ClientboundResourcePackPushPacket packet = new ClientboundResourcePackPushPacket(
+                                                packInfo.id(), packServer.packUrl(), packInfo.hash(), packServer.mandatory,
+                                                Optional.of(PaperAdventure.asVanilla(packServer.prompt))
+                                        );
+
+                                        connection.send(packet);
+                                        return;
+                                    } catch (Exception e) {
+                                        Logs.logWarning("Failed to send " + connection.getPlayer().displayName + " ResourcePack");
+                                        Logs.logWarning("due to joining before pack had finished generating...");
+                                        if (Settings.DEBUG.toBool()) e.printStackTrace();
+                                    }
+                                }
+                                ctx.write(msg, promise);
+                            }
+
+                            @Override
+                            public void channelRead(ChannelHandlerContext ctx, Object msg) {
+                                if (msg instanceof ServerboundResourcePackPacket packet) {
+                                    try {
+                                        //TODO Patch this not sending for terminal actions due to throwing an error
+                                        if (packet.id().equals(OraxenPlugin.get().packServer().packInfo().id()) && packet.action().isTerminal()) {
+                                            ctx.pipeline().remove(this);
+                                            connection.send(ClientboundFinishConfigurationPacket.INSTANCE);
+                                            return;
+                                        }
+                                    } catch (Exception e) {
+                                        Logs.logWarning("Failed to send " + connection.getPlayer().displayName + " ResourcePack");
+                                        Logs.logWarning("due to joining before pack had finished generating...");
+                                        if (Settings.DEBUG.toBool()) e.printStackTrace();
+                                    }
+                                }
+                                ctx.fireChannelRead(msg);
+                            }
+                        }
+                ));
+    }
+
+    @Override
+    public void unregisterConfigPhaseListener() {
+        ChannelInitializeListenerHolder.removeListener(CONFIG_PHASE_PACKET_LISTENER);
     }
 
     @Override
@@ -120,7 +194,7 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
         net.minecraft.world.item.ItemStack nmsStack = CraftItemStack.asNMSCopy(itemStack);
         ServerPlayer serverPlayer = ((CraftPlayer) player).getHandle();
         BlockHitResult hitResult = getPlayerPOVHitResult(serverPlayer.level(), serverPlayer, ClipContext.Fluid.NONE);
-        BlockPlaceContext placeContext = new BlockPlaceContext(new UseOnContext(serverPlayer, hand, hitResult));
+        BlockPlaceContext placeContext = new BlockPlaceContext(serverPlayer.level(), serverPlayer, hand, nmsStack, hitResult);
 
         if (!(nmsStack.getItem() instanceof BlockItem blockItem)) {
             InteractionResult result = InteractionResult.fromNms(nmsStack.getItem().useOn(new UseOnContext(serverPlayer, hand, hitResult)));
@@ -162,8 +236,8 @@ public class NMSHandler implements io.th0rgal.oraxen.nms.NMSHandler {
     }
 
     @Override
-    public void customBlockDefaultTools(Player player) {
-
+    public int playerProtocolVersion(Player player) {
+        return ((CraftPlayer) player).getHandle().connection.connection.protocolVersion;
     }
 
     private TagNetworkSerialization.NetworkPayload createPayload() {

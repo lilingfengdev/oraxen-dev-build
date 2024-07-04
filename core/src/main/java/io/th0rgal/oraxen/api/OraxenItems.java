@@ -1,6 +1,7 @@
 package io.th0rgal.oraxen.api;
 
 import io.th0rgal.oraxen.OraxenPlugin;
+import io.th0rgal.oraxen.api.events.OraxenItemsLoadedEvent;
 import io.th0rgal.oraxen.config.Message;
 import io.th0rgal.oraxen.items.ItemBuilder;
 import io.th0rgal.oraxen.items.ItemParser;
@@ -8,6 +9,7 @@ import io.th0rgal.oraxen.items.ModelData;
 import io.th0rgal.oraxen.mechanics.MechanicFactory;
 import io.th0rgal.oraxen.mechanics.MechanicsManager;
 import io.th0rgal.oraxen.utils.AdventureUtils;
+import io.th0rgal.oraxen.utils.EventUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -24,8 +26,8 @@ public class OraxenItems {
 
     public static final NamespacedKey ITEM_ID = new NamespacedKey(OraxenPlugin.get(), "id");
     // configuration sections : their OraxenItem wrapper
-    private static Map<File, Map<String, ItemBuilder>> map;
-    private static Set<String> items;
+    private static Map<File, Map<String, ItemBuilder>> map = new LinkedHashMap<>();
+    private static Set<String> items = new LinkedHashSet<>();
 
     public static void loadItems() {
         ItemParser.MODEL_DATAS_BY_ID.clear();
@@ -36,6 +38,8 @@ public class OraxenItems {
         items = new HashSet<>();
         for (final Map<String, ItemBuilder> subMap : map.values())
             items.addAll(subMap.keySet());
+
+        EventUtils.callEvent(new OraxenItemsLoadedEvent());
     }
 
     public static String getIdByItem(final ItemBuilder item) {

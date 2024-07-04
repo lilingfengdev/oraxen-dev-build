@@ -21,6 +21,7 @@ import io.th0rgal.oraxen.utils.customarmor.TrimArmorDatapack;
 import io.th0rgal.oraxen.utils.logs.Logs;
 import net.kyori.adventure.key.Key;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import team.unnamed.creative.BuiltResourcePack;
 import team.unnamed.creative.ResourcePack;
@@ -95,16 +96,25 @@ public class PackGenerator {
 
             PackSlicer.processInputs(resourcePack);
 
-            resourcePack = new PackObfuscator(resourcePack, writer.build(resourcePack).hash()).obfuscatePack();
+            try {
+                resourcePack = Bukkit.getScheduler().callSyncMethod(OraxenPlugin.get(), () -> {
+                    OraxenPostPackGenerateEvent event = new OraxenPostPackGenerateEvent(resourcePack);
+                    EventUtils.callEvent(event);
+                    return event.resourcePack();
+                }).get();
+            } catch (Exception ignored) {}
+
+            resourcePack = new PackObfuscator(resourcePack).obfuscatePack();
 
             File packZip = OraxenPlugin.get().packPath().resolve("pack.zip").toFile();
             if (Settings.PACK_ZIP.toBool()) writer.writeToZipFile(packZip, resourcePack);
             builtPack = writer.build(resourcePack);
 
             Bukkit.getScheduler().scheduleSyncDelayedTask(OraxenPlugin.get(), () -> {
-                EventUtils.callEvent(new OraxenPostPackGenerateEvent(resourcePack));
                 Logs.logSuccess("Finished generating resourcepack!", true);
                 OraxenPlugin.get().packServer().uploadPack();
+                if (Settings.PACK_SEND_RELOAD.toBool()) for (Player player : Bukkit.getOnlinePlayers())
+                    OraxenPlugin.get().packServer().sendPack(player);
             });
         });
     }
