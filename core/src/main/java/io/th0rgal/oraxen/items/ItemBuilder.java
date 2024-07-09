@@ -26,6 +26,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.*;
 import org.bukkit.inventory.meta.components.FoodComponent;
 import org.bukkit.inventory.meta.components.JukeboxPlayableComponent;
+import org.bukkit.inventory.meta.components.ToolComponent;
 import org.bukkit.inventory.meta.trim.ArmorTrim;
 import org.bukkit.inventory.meta.trim.TrimMaterial;
 import org.bukkit.inventory.meta.trim.TrimPattern;
@@ -75,6 +76,8 @@ public class ItemBuilder {
     @Nullable
     private FoodComponent foodComponent;
     @Nullable
+    private ToolComponent toolComponent;
+    @Nullable
     private Boolean enchantmentGlintOverride;
     @Nullable
     private Integer maxStackSize;
@@ -83,7 +86,7 @@ public class ItemBuilder {
     @Nullable
     private Boolean fireResistant;
     @Nullable
-    private Boolean hideToolTips;
+    private Boolean hideToolTip;
     @Nullable
     private ItemRarity rarity;
     @Nullable
@@ -186,8 +189,9 @@ public class ItemBuilder {
 
             durability = (itemMeta instanceof Damageable damageable) && damageable.hasMaxDamage() ? damageable.getMaxDamage() : null;
             fireResistant = itemMeta.isFireResistant() ? true : null;
-            hideToolTips = itemMeta.isHideTooltip() ? true : null;
+            hideToolTip = itemMeta.isHideTooltip() ? true : null;
             foodComponent = itemMeta.hasFood() ? itemMeta.getFood() : null;
+            toolComponent = itemMeta.hasTool() ? itemMeta.getTool() : null;
             enchantmentGlintOverride = itemMeta.hasEnchantmentGlintOverride() ? itemMeta.getEnchantmentGlintOverride() : null;
             rarity = itemMeta.hasRarity() ? itemMeta.getRarity() : null;
             maxStackSize = itemMeta.hasMaxStackSize() ? itemMeta.getMaxStackSize() : null;
@@ -296,7 +300,7 @@ public class ItemBuilder {
 
     public ItemBuilder setUnstackable(final boolean unstackable) {
         this.unstackable = unstackable;
-        if (VersionUtil.atOrAbove("1.20.5")) maxStackSize = 1;
+        if (unstackable && VersionUtil.atOrAbove("1.20.5")) maxStackSize = 1;
         return this;
     }
 
@@ -378,6 +382,20 @@ public class ItemBuilder {
         return this;
     }
 
+    public boolean hasToolComponent() {
+        return VersionUtil.atOrAbove("1.20.5") && toolComponent != null;
+    }
+
+    @Nullable
+    public ToolComponent getToolComponent() {
+        return toolComponent;
+    }
+
+    public ItemBuilder setToolComponent(ToolComponent toolComponent) {
+        this.toolComponent = toolComponent;
+        return this;
+    }
+
     public boolean hasJukeboxPlayable() {
         return VersionUtil.atOrAbove("1.21") && jukeboxPlayable != null;
     }
@@ -425,8 +443,8 @@ public class ItemBuilder {
         return this;
     }
 
-    public ItemBuilder setHideToolTips(boolean hideToolTips) {
-        this.hideToolTips = hideToolTips;
+    public ItemBuilder setHideToolTip(boolean hideToolTip) {
+        this.hideToolTip = hideToolTip;
         return this;
     }
 
@@ -593,8 +611,9 @@ public class ItemBuilder {
             if (hasEnchantmentGlindOverride()) itemMeta.setEnchantmentGlintOverride(enchantmentGlintOverride);
             if (hasRarity()) itemMeta.setRarity(rarity);
             if (hasFoodComponent()) itemMeta.setFood(foodComponent);
+            if (hasToolComponent()) itemMeta.setTool(toolComponent);
             if (fireResistant != null) itemMeta.setFireResistant(fireResistant);
-            if (hideToolTips != null) itemMeta.setHideTooltip(hideToolTips);
+            if (hideToolTip != null) itemMeta.setHideTooltip(hideToolTip);
         }
 
         if (VersionUtil.atOrAbove("1.21")) {
@@ -615,9 +634,6 @@ public class ItemBuilder {
             } else itemMeta.setDisplayName(AdventureUtils.LEGACY_SERIALIZER.serialize(displayName));
         }
 
-        if (itemFlags != null)
-            itemMeta.addItemFlags(itemFlags.toArray(new ItemFlag[0]));
-
         if (enchantments.size() > 0) {
             for (final Map.Entry<Enchantment, Integer> enchant : enchantments.entrySet()) {
                 if (enchant.getKey() == null) continue;
@@ -626,11 +642,9 @@ public class ItemBuilder {
             }
         }
 
-        if (hasAttributeModifiers)
-            itemMeta.setAttributeModifiers(attributeModifiers);
-
-        if (hasCustomModelData)
-            itemMeta.setCustomModelData(customModelData);
+        if (itemFlags != null) itemMeta.addItemFlags(itemFlags.toArray(new ItemFlag[0]));
+        if (hasAttributeModifiers) itemMeta.setAttributeModifiers(attributeModifiers);
+        if (hasCustomModelData) itemMeta.setCustomModelData(customModelData);
 
         if (!persistentDataMap.isEmpty())
             for (final Map.Entry<PersistentDataSpace, Object> dataSpace : persistentDataMap.entrySet())
@@ -639,6 +653,19 @@ public class ItemBuilder {
         ItemUtils.lore(itemMeta, lore);
 
         itemStack.setItemMeta(itemMeta);
+
+        /*if (VersionUtil.atOrAbove("1.20.5") && itemMeta.hasItemFlag(ItemFlag.HIDE_ATTRIBUTES)) {
+            Optional.ofNullable(ItemUtils.itemToBase64(itemStack)).ifPresent((data) -> {
+                String regex = "(attribute_modifiers=\\{[^}]*)(?<!show_in_tooltips:true)(\\})";
+
+                Pattern pattern = Pattern.compile(regex);
+                Matcher matcher = pattern.matcher(data);
+
+                data = matcher.replaceAll("$1,show_in_tooltips:true$2");
+                itemStack.setItemMeta(ItemUtils.itemFromBase64(data).getItemMeta());
+            });
+        }*/
+
         finalItemStack = itemStack;
         return this;
     }

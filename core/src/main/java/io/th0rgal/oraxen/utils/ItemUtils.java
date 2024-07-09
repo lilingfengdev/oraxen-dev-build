@@ -1,6 +1,8 @@
 package io.th0rgal.oraxen.utils;
 
+import io.th0rgal.oraxen.config.Settings;
 import io.th0rgal.oraxen.utils.drops.Drop;
+import io.th0rgal.oraxen.utils.logs.Logs;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Color;
 import org.bukkit.Material;
@@ -9,9 +11,14 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerItemDamageEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.*;
+import org.bukkit.util.io.BukkitObjectInputStream;
+import org.bukkit.util.io.BukkitObjectOutputStream;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.yaml.snakeyaml.external.biz.base64Coder.Base64Coder;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -27,6 +34,24 @@ public class ItemUtils {
         itemStack.setAmount(Math.max(0, itemStack.getAmount() - amount));
     }
 
+    public static void itemName(ItemMeta itemMeta, ItemMeta otherMeta) {
+        if (itemMeta == null) return;
+        if (VersionUtil.isPaperServer()) itemName(itemMeta, otherMeta.itemName());
+        else itemMeta.setItemName(otherMeta.getItemName());
+    }
+
+    public static void itemName(ItemMeta itemMeta, @Nullable Component component) {
+        component = component != Component.empty() ? component : null;
+        if (VersionUtil.isPaperServer()) itemMeta.itemName(component);
+        else itemMeta.setItemName(AdventureUtils.LEGACY_SERIALIZER.serialize(component));
+    }
+
+    public static void displayName(ItemMeta itemMeta, ItemMeta otherMeta) {
+        if (itemMeta == null) return;
+        if (VersionUtil.isPaperServer()) displayName(itemMeta, otherMeta.displayName());
+        else itemMeta.setDisplayName(otherMeta.getDisplayName());
+    }
+
     public static void displayName(ItemStack itemStack, @Nullable Component component) {
         editItemMeta(itemStack, itemMeta -> {
             if (VersionUtil.isPaperServer()) itemMeta.displayName(component);
@@ -34,15 +59,10 @@ public class ItemUtils {
         });
     }
 
-    public static void displayName(ItemMeta itemMeta, Component component) {
+    public static void displayName(ItemMeta itemMeta, @Nullable Component component) {
+        component = component != Component.empty() ? component : null;
         if (VersionUtil.isPaperServer()) itemMeta.displayName(component);
         else itemMeta.setDisplayName(AdventureUtils.LEGACY_SERIALIZER.serialize(component));
-    }
-
-    public static void displayName(ItemMeta itemMeta, ItemMeta otherMeta) {
-        if (itemMeta == null) return;
-        if (VersionUtil.isPaperServer()) itemMeta.displayName(otherMeta.displayName());
-        else itemMeta.setDisplayName(otherMeta.getDisplayName());
     }
 
     public static void lore(ItemStack itemStack, List<Component> components) {
@@ -92,6 +112,47 @@ public class ItemUtils {
         if (meta == null) return;
         function.accept(meta);
         itemStack.setItemMeta(meta);
+    }
+
+    @Nullable
+    public static String itemToBase64(ItemStack stack) {
+        try {
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            BukkitObjectOutputStream dataOutput = new BukkitObjectOutputStream(outputStream);
+            dataOutput.writeObject(stack);
+
+            // Serialize that array
+            dataOutput.close();
+            return Base64Coder.encodeLines(outputStream.toByteArray());
+        }
+        catch (Exception e) {
+            if (Settings.DEBUG.toBool()) e.printStackTrace();
+            else Logs.logWarning(e.getMessage());
+        }
+
+        return null;
+    }
+
+    @Nullable
+    public static ItemStack itemFromBase64(String data) {
+        try {
+            ByteArrayInputStream inputStream = new ByteArrayInputStream(Base64Coder.decodeLines(data));
+            BukkitObjectInputStream dataInput = new BukkitObjectInputStream(inputStream);
+            try {
+                return (ItemStack) dataInput.readObject();
+            } catch (Exception e) {
+                if (Settings.DEBUG.toBool()) e.printStackTrace();
+                else Logs.logWarning(e.getMessage());
+            } finally {
+                dataInput.close();
+            }
+        }
+        catch (Exception e) {
+            if (Settings.DEBUG.toBool()) e.printStackTrace();
+            else Logs.logWarning(e.getMessage());
+        }
+
+        return null;
     }
 
     /**
