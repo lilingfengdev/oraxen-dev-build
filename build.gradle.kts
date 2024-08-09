@@ -57,10 +57,10 @@ allprojects {
         maven("https://mvn.lumine.io/repository/maven-public/") { metadataSources { artifact() } }// MythicMobs
         maven("https://repo.mineinabyss.com/releases")
         maven("https://s01.oss.sonatype.org/content/repositories/snapshots") // commandAPI snapshots
-        maven("https://repo.auxilor.io/repository/maven-public/") // EcoItems
-        maven("https://maven.enginehub.org/repo/")
         maven("https://repo.oraxen.com/releases")
         maven("https://repo.oraxen.com/snapshots")
+        maven("https://repo.auxilor.io/repository/maven-public/") // EcoItems
+        maven("https://maven.enginehub.org/repo/")
         maven("https://jitpack.io") // JitPack
         maven("https://repo.unnamed.team/repository/unnamed-public/") // Creative
         maven("https://nexus.phoenixdevt.fr/repository/maven-public/") // MMOItems
@@ -94,14 +94,14 @@ allprojects {
         compileOnly("nl.rutgerkok:blocklocker:1.12.2")
         compileOnly("org.apache.commons:commons-lang3:$apacheLang3Version")
         compileOnly("org.apache.httpcomponents:httpmime:$apacheHttpMimeVersion")
-        compileOnly("team.unnamed:creative-api:$creativeVersion")
-        compileOnly("team.unnamed:creative-serializer-minecraft:$creativeVersion")
-        compileOnly("team.unnamed:creative-server:$creativeVersion")
         compileOnly(files("../libs/AxiomPaper-1.5.12.jar"))
+        compileOnly("team.unnamed:creative-server:$creativeVersion")
 
+        implementation("team.unnamed:creative-api:$creativeVersion")
+        implementation("team.unnamed:creative-serializer-minecraft:$creativeVersion")
         implementation("dev.jorel:commandapi-bukkit-shade:$commandApiVersion")
         implementation("org.bstats:bstats-bukkit:3.0.0")
-        implementation("io.th0rgal:protectionlib:1.5.8")
+        implementation("io.th0rgal:protectionlib:1.6.0")
         implementation("com.github.stefvanschie.inventoryframework:IF:0.10.14")
         implementation("com.jeff-media:custom-block-data:2.2.2")
         implementation("com.jeff_media:MorePersistentDataTypes:2.4.0")
@@ -133,9 +133,6 @@ tasks {
     }
 
     runServer {
-        downloadPlugins {
-            url("https://ci.dmulloy2.net/job/ProtocolLib/lastSuccessfulBuild/artifact/build/libs/ProtocolLib.jar")
-        }
         minecraftVersion("1.21")
     }
 
@@ -158,7 +155,7 @@ tasks {
         //shade("org.jetbrains.annotations")
         //shade("com.udojava.evalex")
         //shade("dev.jorel")
-        //shade("kr.toxicity.libraries")
+        //shade("team.unnamed")
 
         manifest {
             attributes(
@@ -198,7 +195,7 @@ bukkitPluginYaml {
     softDepend = listOf(
         "LightAPI", "PlaceholderAPI", "MythicMobs", "MMOItems", "MythicCrucible", "MythicMobs",
         "WorldEdit", "WorldGuard", "Towny", "Factions", "Lands", "PlotSquared",
-        "ModelEngine", "CrashClaim", "HuskClaims", "BentoBox", "AxiomPaper"
+        "ModelEngine", "HuskTowns", "HuskClaims", "BentoBox", "AxiomPaper"
     )
     libraries = listOf(
         "org.springframework:spring-expression:6.0.6",
@@ -211,8 +208,6 @@ bukkitPluginYaml {
         "org.apache.commons:commons-lang3:$apacheLang3Version",
         "org.apache.httpcomponents:httpmime:$apacheHttpMimeVersion",
         "gs.mclo:java:2.2.1",
-        "team.unnamed:creative-api:$creativeVersion",
-        "team.unnamed:creative-serializer-minecraft:$creativeVersion",
         "team.unnamed:creative-server:$creativeVersion",
     )
 }
